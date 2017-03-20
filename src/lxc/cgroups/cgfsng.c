@@ -767,6 +767,7 @@ static char **get_controllers(char **klist, char **nlist, char *line)
 	char *p = line, *p2, *tok, *saveptr = NULL;
 	char **aret = NULL;
 
+	// 跳过前三个区域
 	for (i = 0; i < 4; i++) {
 		p = strchr(p, ' ');
 		if (!p)
@@ -945,7 +946,20 @@ static void get_existing_subsystems(char ***klist, char ***nlist)
 	FILE *f;
 	char *line = NULL;
 	size_t len = 0;
+/* cat /proc/self/cgroup
 
+11:memory:/user.slice/user-0.slice/session-3148.scope
+10:hugetlb:/
+9:blkio:/user.slice/user-0.slice/session-3148.scope
+8:freezer:/user/root/0
+7:net_cls,net_prio:/
+6:devices:/user.slice/user-0.slice/session-3148.scope
+5:perf_event:/
+4:cpu,cpuacct:/user.slice/user-0.slice/session-3148.scope
+3:pids:/user.slice/user-0.slice/session-3148.scope
+2:cpuset:/
+1:name=systemd:/user.slice/user-0.slice/session-3148.scope
+*/
 	if ((f = fopen("/proc/self/cgroup", "r")) == NULL)
 		return;
 	while (getline(&line, &len, f) != -1) {
@@ -969,7 +983,7 @@ static void get_existing_subsystems(char ***klist, char ***nlist)
 		 */
 		if ((p2 - p) == 0)
 			continue;
-
+		//  取两个冒号中间的字符串
 		for (tok = strtok_r(p, ",", &saveptr); tok;
 				tok = strtok_r(NULL, ",", &saveptr)) {
 			if (strncmp(tok, "name=", 5) == 0)
@@ -1039,6 +1053,7 @@ static void print_basecg_debuginfo(char *basecginfo, char **klist, char **nlist)
  * At startup, parse_hierarchies finds all the info we need about
  * cgroup mountpoints and current cgroups, and stores it in @d.
  */
+// 解析所有的group信息，将其保存到全局变量中 hierarchies
 static bool parse_hierarchies(void)
 {
 	FILE *f;
@@ -1062,6 +1077,8 @@ static bool parse_hierarchies(void)
 		return false;
 	}
 
+	// 读取文件/proc/self/cgroup 
+	// 将group控制区保存到klist和nlist中。
 	get_existing_subsystems(&klist, &nlist);
 
 	print_basecg_debuginfo(basecginfo, klist, nlist);
@@ -1070,19 +1087,22 @@ static bool parse_hierarchies(void)
 	while (getline(&line, &len, f) != -1) {
 		char **controller_list = NULL;
 		char *mountpoint, *base_cgroup;
-
+		// 这里只关心 lxcfs和cgroup的挂载信息
 		if (!is_lxcfs(line) && !is_cgroupfs(line))
 			continue;
 
+		// 找到/sys/fs/cgroup/后面紧跟的控制器名称
 		controller_list = get_controllers(klist, nlist, line);
 		if (!controller_list)
 			continue;
 
+		// 判断是否重复
 		if (controller_list_is_dup(hierarchies, controller_list)) {
 			free(controller_list);
 			continue;
 		}
 
+		// 获取挂载点 /sys/fs/cgroup/controler-name
 		mountpoint = get_mountpoint(line);
 		if (!mountpoint) {
 			ERROR("Error reading mountinfo: bad line '%s'", line);
@@ -1090,6 +1110,7 @@ static bool parse_hierarchies(void)
 			continue;
 		}
 
+		// 找到controller_list[0]对应的挂载点，即第二个冒号后面的内容
 		base_cgroup = get_current_cgroup(basecginfo, controller_list[0]);
 		if (!base_cgroup) {
 			ERROR("Failed to find current cgroup for controller '%s'", controller_list[0]);
@@ -1097,7 +1118,8 @@ static bool parse_hierarchies(void)
 			free(mountpoint);
 			continue;
 		}
-		trim(base_cgroup);
+		trim(base_cgroup);	// 去掉末尾的\n
+		// 删除末尾的/init.scope
 		prune_init_scope(base_cgroup);
 		if (!test_writeable(mountpoint, base_cgroup)) {
 			free_string_list(controller_list);
@@ -1105,6 +1127,7 @@ static bool parse_hierarchies(void)
 			free(base_cgroup);
 			continue;
 		}
+		printf("XXXX: mountpoint = %s, base_cgroup = %s\n", mountpoint, base_cgroup);
 		add_controller(controller_list, mountpoint, base_cgroup);
 	}
 
@@ -1119,6 +1142,7 @@ static bool parse_hierarchies(void)
 	/* verify that all controllers in cgroup.use and all crucial
 	 * controllers are accounted for
 	 */
+	// 判读是否所有需要的控制器都找到了。
 	if (!all_controllers_found())
 		return false;
 
@@ -1134,6 +1158,8 @@ static bool collect_hierarchy_info(void)
 		SYSERROR("cgfsng: error reading list of cgroups to use");
 		return false;
 	}
+	// lxc.cgroup.use默认为空，代表容器需要使用的control group 类型
+	INFO("XXXX: lxc.cgroup.use = %s", tmp);
 	cgroup_use = must_copy_string(tmp);
 
 	return parse_hierarchies();
@@ -1146,7 +1172,7 @@ static void *cgfsng_init(const char *name)
 
 	d = must_alloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
-
+// name 为容器的名称
 	d->name = must_copy_string(name);
 
 	cgroup_pattern = lxc_global_config_value("lxc.cgroup.pattern");
@@ -1156,6 +1182,7 @@ static void *cgfsng_init(const char *name)
 	}
 	d->cgroup_pattern = must_copy_string(cgroup_pattern);
 
+	// 这会儿会打印到日志文件中
 	print_init_debuginfo(d);
 
 	return d;
@@ -1292,6 +1319,7 @@ static void cgfsng_destroy(void *hdata, struct lxc_conf *conf)
 	free_handler_data(d);
 }
 
+// 会在执行main函数之前，执行该函数
 struct cgroup_ops *cgfsng_ops_init(void)
 {
 	if (!collect_hierarchy_info())

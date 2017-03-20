@@ -671,6 +671,7 @@ static int parse_config(FILE *f, struct lxc_conf *conf)
  *   1. seccomp is not enabled in the kernel
  *   2. a seccomp policy is already enabled for this task
  */
+// 判断是否需要应用seccomp规则
 static bool use_seccomp(void)
 {
 	FILE *f = fopen("/proc/self/status", "r");

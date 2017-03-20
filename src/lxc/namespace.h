@@ -65,9 +65,9 @@ enum {
 };
 
 extern const struct ns_info {
-	const char *proc_name;
-	int clone_flag;
-	const char *flag_name;
+	const char *proc_name;		// proc下的名称
+	int clone_flag;			// flags的值
+	const char *flag_name;		// flags的名称
 } ns_info[LXC_NS_MAX];
 
 #if defined(__ia64__)

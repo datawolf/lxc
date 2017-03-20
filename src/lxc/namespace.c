@@ -54,13 +54,17 @@ pid_t lxc_clone(int (*fn)(void *), void *arg, int flags)
 	};
 
 	size_t stack_size = sysconf(_SC_PAGESIZE);
-	void *stack = alloca(stack_size);
+	void *stack = alloca(stack_size);	// 在栈上分配内存，不需要释放
 	pid_t ret;
 
+// clone 时flags的低字节保存了子进程退出时，给父进程发送的信号，所有这里必须
+// 添加 SIGCHLD。
 #ifdef __ia64__
+	// __clone2跟clone完成的功能一样，唯一不同的时指定栈的方式不同
 	ret = __clone2(do_clone, stack,
 		       stack_size, flags | SIGCHLD, &clone_arg);
 #else
+	// 栈是往下增长的
 	ret = clone(do_clone, stack  + stack_size, flags | SIGCHLD, &clone_arg);
 #endif
 	if (ret < 0)
@@ -85,6 +89,7 @@ pid_t lxc_clone(int (*fn)(void *), void *arg, int flags)
  *
  *        linux/fs/namespace.c:mntns_install().
  */
+// 第一个必须是CLONE_NEWUSER
 const struct ns_info ns_info[LXC_NS_MAX] = {
 	[LXC_NS_USER] = {"user", CLONE_NEWUSER, "CLONE_NEWUSER"},
 	[LXC_NS_MNT] = {"mnt", CLONE_NEWNS, "CLONE_NEWNS"},
@@ -95,6 +100,7 @@ const struct ns_info ns_info[LXC_NS_MAX] = {
 	[LXC_NS_CGROUP] = {"cgroup", CLONE_NEWCGROUP, "CLONE_NEWCGROUP"}
 };
 
+// 查询ns_info 数据库，输入为proc name，输出为对应的CLONE_NEWxxx
 int lxc_namespace_2_cloneflag(char *namespace)
 {
 	int i;
@@ -106,6 +112,7 @@ int lxc_namespace_2_cloneflag(char *namespace)
 	return -1;
 }
 
+// 将user|mnt|ipc类似的字符串，转换为传递给clone的标志
 int lxc_fill_namespace_flags(char *flaglist, int *flags)
 {
 	char *token, *saveptr = NULL;

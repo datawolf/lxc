@@ -45,6 +45,7 @@
 #include "network.h"
 #include "utils.h"
 
+// 新版本的glibc和都有该api
 /* Define sethostname() if missing from the C library */
 #ifndef HAVE_SETHOSTNAME
 static int sethostname(const char * name, size_t len)
@@ -178,7 +179,7 @@ int main(int argc, char *argv[])
 			if (!(tmpif = malloc(sizeof(*tmpif)))) {
 				perror("malloc");
 				exit(EXIT_FAILURE);
-			}
+			}	// 往后面追加
 			tmpif->mi_ifname = optarg;
 			tmpif->mi_next = my_iflist;
 			my_iflist = tmpif;
@@ -212,7 +213,7 @@ int main(int argc, char *argv[])
 	ret = lxc_caps_init();
 	if (ret)
 		exit(EXIT_FAILURE);
-
+	printf("namespace = %s\n", namespaces);
 	/* The identifiers for namespaces used with lxc-unshare as given on the
 	 * manpage do not align with the standard identifiers. This affects
 	 * network, mount, and uts namespaces. The standard identifiers are:
@@ -225,16 +226,19 @@ int main(int argc, char *argv[])
 	 *
 	 * then we memmove()
 	 *
-	 *	dest: del + 1 == ONT|PID
+	 *	dest: del + 1 == OUNT|PID
 	 *	src:  del + 3 == NT|PID
 	 */
+// 将字符串MOUNT变换为MNT
 	while ((del = strstr(namespaces, "MOUNT")))
 		memmove(del + 1, del + 3, strlen(del) - 2);
 
+	// 将NETWORK,UTSNAME变换为NET,UTS
 	for (it = (char *[]){"NETWORK", "UTSNAME", NULL}; it && *it; it++)
 		while ((del = strstr(namespaces, *it)))
 			memmove(del + 3, del + 7, strlen(del) - 6);
 
+// 根据用户-s指定的namespace，填充flags
 	ret = lxc_fill_namespace_flags(namespaces, &flags);
 	if (ret)
 		usage(argv[0]);

@@ -46,11 +46,11 @@ void cgroup_ops_init(void)
 	}
 
 	DEBUG("cgroup_init");
-	#if HAVE_CGMANAGER
+	#if HAVE_CGMANAGER	// 这个已经废弃了
 	ops = cgm_ops_init();
 	#endif
 	if (!ops)
-		ops = cgfsng_ops_init();
+		ops = cgfsng_ops_init();	//现在一般用这个
 	if (!ops)
 		ops = cgfs_ops_init();
 	if (ops)

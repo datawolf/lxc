@@ -521,7 +521,7 @@ WRAP_API(pid_t, lxcapi_init_pid)
 static bool load_config_locked(struct lxc_container *c, const char *fname)
 {
 	if (!c->lxc_conf)
-		c->lxc_conf = lxc_conf_init();
+		c->lxc_conf = lxc_conf_init();//初始化配置
 	if (!c->lxc_conf)
 		return false;
 	if (lxc_config_read(fname, c->lxc_conf, false) != 0)
@@ -529,11 +529,14 @@ static bool load_config_locked(struct lxc_container *c, const char *fname)
 	return true;
 }
 
+// 如果alt_file不为空，就从它里面去读
+// 默认读取c->configfile
 static bool do_lxcapi_load_config(struct lxc_container *c, const char *alt_file)
 {
 	bool ret = false, need_disklock = false;
 	int lret;
 	const char *fname;
+	INFO("XXXX: do_lxc_api_load_config");
 	if (!c)
 		return false;
 
@@ -767,6 +770,7 @@ static bool do_lxcapi_start(struct lxc_container *c, int useinit, char * const a
 
 	/* if no argv was passed in, use lxc.init_cmd if provided in
 	 * configuration */
+	INFO("XXXX: config->init_cmd = %s", conf->init_cmd);
 	if (!argv)
 		argv = init_cmd = split_init_cmd(conf->init_cmd);
 
@@ -1455,14 +1459,16 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 		ERROR("Container %s:%s already exists", c->config_path, c->name);
 		goto free_tpath;
 	}
-
+INFO("CREATE: create container %s:%s", c->config_path, c->name);
 	if (!c->lxc_conf) {
 		if (!do_lxcapi_load_config(c, lxc_global_config_value("lxc.default_config"))) {
 			ERROR("Error loading default configuration file %s", lxc_global_config_value("lxc.default_config"));
 			goto free_tpath;
 		}
+		INFO("CREATE: loading default configuration file %s", lxc_global_config_value("lxc.default_config"));
 	}
 
+// 创建容器的目录
 	if (!create_container_dir(c))
 		goto free_tpath;
 
@@ -1470,7 +1476,10 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 	 * if both template and rootfs.path are set, template is setup as rootfs.path.
 	 * container is already created if we have a config and rootfs.path is accessible
 	 */
+INFO("XXXXX: tpath = %s", tpath);
+INFO("XXXXX: rootfs.path = %s", c->lxc_conf->rootfs.path);
 	if (!c->lxc_conf->rootfs.path && !tpath) {
+INFO("XXXXX: save starting configuration for %s", c->name);
 		/* no template passed in and rootfs does not exist */
 		if (!c->save_config(c, NULL)) {
 			ERROR("failed to save starting configuration for %s\n", c->name);
@@ -1485,6 +1494,7 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 	if (do_lxcapi_is_defined(c) && c->lxc_conf->rootfs.path && !tpath) {
 		/* Rootfs already existed, user just wanted to save the
 		 * loaded configuration */
+INFO("YYYYY: save starting configuration for %s", c->name);
 		if (!c->save_config(c, NULL))
 			ERROR("failed to save starting configuration for %s\n", c->name);
 		ret = true;
@@ -1512,7 +1522,7 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 
 	if (pid == 0) { // child
 		struct bdev *bdev = NULL;
-
+INFO("PPPPP: creating backing store type for %s", c->name);
 		if (!(bdev = do_bdev_create(c, bdevtype, specs))) {
 			ERROR("Error creating backing store type %s for %s",
 				bdevtype ? bdevtype : "(none)", c->name);
@@ -1527,22 +1537,25 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 			bdev->ops->destroy(bdev);
 			exit(1);
 		}
+INFO("PPPPP: save starting configuration for  %s done", c->name);
 		exit(0);
 	}
 	if (wait_for_pid(pid) != 0)
 		goto out_unlock;
-
+INFO("PPPPP: reload config go get the rootfs");
 	/* reload config to get the rootfs */
 	lxc_conf_free(c->lxc_conf);
 	c->lxc_conf = NULL;
 	if (!load_config_locked(c, c->configfile))
 		goto out_unlock;
 
+INFO("PPPPP: run template");
 	if (!create_run_template(c, tpath, !!(flags & LXC_CREATE_QUIET), argv))
 		goto out_unlock;
 
 	// now clear out the lxc_conf we have, reload from the created
 	// container
+// 清空lxc_conf
 	do_lxcapi_clear_config(c);
 
 	if (t) {
@@ -1551,6 +1564,8 @@ static bool do_lxcapi_create(struct lxc_container *c, const char *t,
 			goto out_unlock;
 		}
 	}
+// 重新加载容器的配置
+INFO("PPPPP: Reload from the created container: %s", c->configfile);
 	ret = load_config_locked(c, c->configfile);
 
 out_unlock:
@@ -1570,6 +1585,7 @@ static bool lxcapi_create(struct lxc_container *c, const char *t,
 {
 	bool ret;
 	current_config = c ? c->lxc_conf : NULL;
+INFO("YYYYYYYY: lxcapi_create entry");
 	ret = do_lxcapi_create(c, t, bdevtype, specs, flags, argv);
 	current_config = NULL;
 	return ret;
@@ -4099,7 +4115,6 @@ out:
 struct lxc_container *lxc_container_new(const char *name, const char *configpath)
 {
 	struct lxc_container *c;
-
 	if (!name)
 		return NULL;
 
@@ -4114,6 +4129,7 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 		c->config_path = strdup(configpath);
 	else
 		c->config_path = strdup(lxc_global_config_value("lxc.lxcpath"));
+// c->config_path = /usr/var/lib/lxc
 
 	if (!c->config_path) {
 		fprintf(stderr, "Out of memory\n");
@@ -4129,23 +4145,27 @@ struct lxc_container *lxc_container_new(const char *name, const char *configpath
 	strcpy(c->name, name);
 
 	c->numthreads = 1;
+	// 创建flock类型的锁
 	if (!(c->slock = lxc_newlock(c->config_path, name))) {
 		fprintf(stderr, "failed to create lock\n");
 		goto err;
 	}
 
+	// 当第二个参数为空时，锁类型为 信号量
 	if (!(c->privlock = lxc_newlock(NULL, NULL))) {
 		fprintf(stderr, "failed to alloc privlock\n");
 		goto err;
 	}
-
+	// c->configfile = /usr/var/lib/lxc/NAME/config
 	if (!set_config_filename(c)) {
 		fprintf(stderr, "Error allocating config file pathname\n");
 		goto err;
 	}
 
+	INFO("XXXX: load config start: %s\n", c->configfile);
 	if (file_exists(c->configfile) && !lxcapi_load_config(c, NULL))
 		goto err;
+	INFO("XXXX: load config done");
 
 	if (ongoing_create(c) == 2) {
 		ERROR("Error: %s creation was not completed", c->name);

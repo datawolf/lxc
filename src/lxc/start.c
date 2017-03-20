@@ -422,10 +422,11 @@ struct lxc_handler *lxc_init(const char *name, struct lxc_conf *conf, const char
 		ERROR("Failed to allocate memory.");
 		goto out_free;
 	}
-
+	INFO("XXXX lxc cmd init");
 	if (lxc_cmd_init(name, handler, lxcpath))
 		goto out_free_name;
 
+	// 解析seccomp配置文件
 	if (lxc_read_seccomp_config(conf) != 0) {
 		ERROR("Failed loading seccomp policy.");
 		goto out_close_maincmd_fd;
@@ -877,6 +878,7 @@ static int do_start(void *data)
 	/* If we mounted a temporary proc, then unmount it now. */
 	tmp_proc_unmount(handler->conf);
 
+	// 将seccomp策略加载到到内核里，使其生效
 	if (lxc_seccomp_load(handler->conf) != 0)
 		goto out_warn_father;
 
@@ -1126,6 +1128,7 @@ static int lxc_spawn(struct lxc_handler *handler)
 		}
 	}
 
+	INFO("XXXX: initializing cgroup support");
 	if (!cgroup_init(handler)) {
 		ERROR("Failed initializing cgroup support.");
 		goto out_delete_net;
@@ -1133,6 +1136,7 @@ static int lxc_spawn(struct lxc_handler *handler)
 
 	cgroups_connected = true;
 
+	INFO("XXXX: creating cgroups");
 	if (!cgroup_create(handler)) {
 		ERROR("Failed creating cgroups.");
 		goto out_delete_net;
@@ -1336,6 +1340,7 @@ int __lxc_start(const char *name, struct lxc_conf *conf,
 	handler->backgrounded = backgrounded;
 	handler->netnsfd = -1;
 
+	// 判断内核是否支持容器里调用reboot系统调用。
 	if (must_drop_cap_sys_boot(handler->conf)) {
 		#if HAVE_LIBCAP
 		DEBUG("Dropping CAP_SYS_BOOT capability.");

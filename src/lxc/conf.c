@@ -2522,7 +2522,7 @@ struct lxc_conf *lxc_conf_init(void)
 	struct lxc_conf *new;
 	int i;
 
-	new = 	malloc(sizeof(*new));
+	new = malloc(sizeof(*new));
 	if (!new) {
 		ERROR("lxc_conf_init : %m");
 		return NULL;

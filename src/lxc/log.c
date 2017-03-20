@@ -547,6 +547,12 @@ extern int lxc_log_init(const char *name, const char *file,
 			const char *priority, const char *prefix, int quiet,
 			const char *lxcpath)
 {
+printf("lxc_long_init: name = %s\n", name);
+printf("lxc_long_init: file = %s\n", file);
+printf("lxc_long_init: priority = %s\n", priority);
+printf("lxc_long_init: prefix = %s\n", prefix);
+printf("lxc_long_init: quiet = %d\n", quiet);
+printf("lxc_long_init: lxcpath = %s\n", lxcpath);
 	int lxc_priority = LXC_LOG_PRIORITY_ERROR;
 	int ret;
 

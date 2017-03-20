@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 			 my_args.progname, my_args.quiet, my_args.lxcpath[0]))
 		exit(EXIT_FAILURE);
 	lxc_log_options_no_override();
-
+printf("template = %s\n", my_args.template);
 	if (!my_args.template) {
 		fprintf(stderr, "A template must be specified.\n");
 		fprintf(stderr, "Use \"none\" if you really want a container without a rootfs.\n");
@@ -263,7 +263,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
+INFO("my_args.lxcpath[0]= %s\n", my_args.lxcpath[0]);
+INFO("my_args.name = %s\n", my_args.name);
 	c = lxc_container_new(my_args.name, my_args.lxcpath[0]);
 	if (!c) {
 		fprintf(stderr, "Failed to create lxc container.\n");
@@ -274,9 +275,11 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Container already exists\n");
 		exit(EXIT_FAILURE);
 	}
+// 在lxc_container_new中会给configfile赋值
+INFO("my_args.configfile = %s\n", my_args.configfile);
 	if (my_args.configfile)
 		c->load_config(c, my_args.configfile);
-	else
+	else	// /usr/etc/lxc/default.conf
 		c->load_config(c, lxc_global_config_value("lxc.default_config"));
 
 	if (my_args.fstype)
@@ -313,7 +316,7 @@ int main(int argc, char *argv[])
 
 	if (my_args.quiet)
 		flags = LXC_CREATE_QUIET;
-
+INFO("XXXX: before create");
 	if (!c->create(c, my_args.template, my_args.bdevtype, &spec, flags, &argv[optind])) {
 		ERROR("Error creating container %s", c->name);
 		lxc_container_put(c);

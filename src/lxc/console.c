@@ -501,7 +501,7 @@ int lxc_console_create(struct lxc_conf *conf)
 {
 	struct lxc_console *console = &conf->console;
 	int ret;
-
+	INFO("XXXX: console create start");
 	if (conf->is_execute) {
 		INFO("no console for lxc-execute.");
 		return 0;
@@ -517,6 +517,7 @@ int lxc_console_create(struct lxc_conf *conf)
 	ret = openpty(&console->master, &console->slave,
 		    console->name, NULL, NULL);
 	process_unlock();
+	INFO("XXXX: console->name = %s", console->name);
 	if (ret) {
 		SYSERROR("failed to allocate a pty");
 		return -1;

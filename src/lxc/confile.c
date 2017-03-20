@@ -2054,18 +2054,22 @@ static int parse_line(char *buffer, void *data)
 		if ((ret = append_unexp_config_line(line, plc->conf)))
 			goto out;
 
+// 删除左面的空格
 	line += lxc_char_left_gc(line, strlen(line));
 
 	/* ignore comments */
+	// 注释，跳过
 	if (line[0] == '#')
 		goto out;
 
 	/* martian option - don't add it to the config itself */
+	// 无效的line，跳过
 	if (strncmp(line, "lxc.", 4))
 		goto out;
 
 	ret = -1;
 
+// 没有找到等号，跳过
 	dot = strstr(line, "=");
 	if (!dot) {
 		ERROR("invalid configuration line: %s", line);
@@ -2076,11 +2080,14 @@ static int parse_line(char *buffer, void *data)
 	value = dot + 1;
 
 	key = line;
+	// 删除key右边的空格
 	key[lxc_char_right_gc(key, strlen(key))] = '\0';
 
+	// 删除value左边和右边的空格
 	value += lxc_char_left_gc(value, strlen(value));
 	value[lxc_char_right_gc(value, strlen(value))] = '\0';
 
+	// 如果value被单引号或者双引号包含，去掉
 	if (*value == '\'' || *value == '\"') {
 		size_t len = strlen(value);
 		if (len > 1 && value[len-1] == *value) {
@@ -2089,12 +2096,14 @@ static int parse_line(char *buffer, void *data)
 		}
 	}
 
+// 获取关键值是key的config信息
 	config = lxc_getconfig(key);
 	if (!config) {
 		ERROR("unknown key %s", key);
 		goto out;
 	}
-
+INFO("CCCC: process %s(%s) ...", key, value);
+// 这里真正处理value的值
 	ret = config->cb(key, value, plc->conf);
 
 out:
@@ -2126,7 +2135,8 @@ int lxc_config_read(const char *file, struct lxc_conf *conf, bool from_include)
 	/* Catch only the top level config file name in the structure */
 	if(!conf->rcfile)
 		conf->rcfile = strdup(file);
-
+INFO("XXXX: lxc_config_read file = %s\n", file);
+INFO("XXXX: lxc_config_read rcfile = %s\n", conf->rcfile);
 	return lxc_file_for_each_line(file, parse_line, &c);
 }
 
@@ -2149,6 +2159,7 @@ int lxc_config_define_load(struct lxc_list *defines, struct lxc_conf *conf)
 	int ret = 0;
 
 	lxc_list_for_each(it, defines) {
+		INFO("XXXX: config: %s", (char *)it->elem);
 		ret = lxc_config_readline(it->elem, conf);
 		if (ret)
 			break;

@@ -107,6 +107,7 @@ static int fill_sock_name(char *path, int len, const char *name,
 	if (ret < len)
 		return 0;
 
+	// 如果unix socket的地址超过了108的限制，则进行hash处理
 	/* ret >= len; lxcpath or name is too long.  hash both */
 	tmplen = strlen(name) + strlen(lxcpath) + 2;
 	tmppath = alloca(tmplen);
@@ -954,7 +955,7 @@ static int lxc_cmd_accept(int fd, uint32_t events, void *data,
 		SYSERROR("Failed to enable necessary credentials on command socket.");
 		goto out_close;
 	}
-
+	// accept后，将连接后的socket连接，添加到mainloop的handler中
 	ret = lxc_mainloop_add_handler(descr, connection, lxc_cmd_handler, data);
 	if (ret) {
 		ERROR("Failed to add command handler.");
@@ -974,6 +975,7 @@ int lxc_cmd_init(const char *name, struct lxc_handler *handler,
 {
 	int fd;
 	char path[sizeof(((struct sockaddr_un *)0)->sun_path)] = { 0 };
+	// sizeof(((struct sockaddr_un *)0)->sun_path) == 108
 	char *offset = &path[1];
 	int len;
 
@@ -981,11 +983,12 @@ int lxc_cmd_init(const char *name, struct lxc_handler *handler,
 	 * leading \0, and we null terminate, so it needs a trailing \0.
 	 * Although null termination isn't required by the API, we do it anyway
 	 * because we print the sockname out sometimes.
-	 */
+	 */// 抽象socket
 	len = sizeof(path)-2;
 	if (fill_sock_name(offset, len, name, lxcpath, NULL))
 		return -1;
 
+	// bind and listen
 	fd = lxc_abstract_unix_open(path, SOCK_STREAM, 0);
 	if (fd < 0) {
 		ERROR("Failed to create the command service point %s: %s.",
@@ -1009,6 +1012,7 @@ int lxc_cmd_mainloop_add(const char *name,
 			 struct lxc_epoll_descr *descr,
 			 struct lxc_handler *handler)
 {
+	// handler->conf->maincmd_fd 为监听的抽象socket
 	int ret, fd = handler->conf->maincmd_fd;
 
 	ret = lxc_mainloop_add_handler(descr, fd, lxc_cmd_accept, handler);

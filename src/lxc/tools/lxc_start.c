@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 			 my_args.progname, my_args.quiet, my_args.lxcpath[0]))
 		exit(err);
 	lxc_log_options_no_override();
-
+	INFO("XXXX: my_args.lxcpath[0] = %s", my_args.lxcpath[0]);
 	if (access(my_args.lxcpath[0], O_RDONLY) < 0) {
 		if (!my_args.quiet)
 			fprintf(stderr, "You lack access to %s\n", my_args.lxcpath[0]);
@@ -279,11 +279,13 @@ int main(int argc, char *argv[])
 			free(rcfile);
 			rcfile = NULL;
 		}
+		// 读取配置，并给容器相关操作的函数指针赋值
 		c = lxc_container_new(my_args.name, lxcpath);
 		if (!c) {
 			ERROR("Failed to create lxc_container");
 			exit(err);
 		}
+		INFO("XXXX: create lxc_container done") ;
 	}
 
 	/* We do not check here whether the container is defined, because we
@@ -306,10 +308,14 @@ int main(int argc, char *argv[])
 	 * We should use set_config_item() over &defines, which would handle
 	 * unset c->lxc_conf for us and let us not use lxc_config_define_load()
 	 */
-	if (!c->lxc_conf)
+	if (!c->lxc_conf) {
+		INFO("XXXX: init lxc_conf");
 		c->lxc_conf = lxc_conf_init();
+	}
+	INFO("XXXX: lxc_conf");
 	conf = c->lxc_conf;
 
+	// 如果没有指定-s参数，这里的define为空
 	if (lxc_config_define_load(&defines, conf))
 		goto out;
 
@@ -317,12 +323,15 @@ int main(int argc, char *argv[])
 		ERROR("Executing '/sbin/init' with no configuration file may crash the host");
 		goto out;
 	}
-
+	INFO("XXXX: conf->console.path = %s", conf->console.path);
+	INFO("XXXX: my_args.console = %s", my_args.console);
 	if (ensure_path(&conf->console.path, my_args.console) < 0) {
 		ERROR("failed to ensure console path '%s'", my_args.console);
 		goto out;
 	}
 
+	INFO("XXXX: conf->console.log_path = %s", conf->console.log_path);
+	INFO("XXXX: my_args.console_log = %s", my_args.console_log);
 	if (ensure_path(&conf->console.log_path, my_args.console_log) < 0) {
 		ERROR("failed to ensure console log '%s'", my_args.console_log);
 		goto out;

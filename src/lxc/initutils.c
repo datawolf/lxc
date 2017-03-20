@@ -143,10 +143,12 @@ const char *lxc_global_config_value(const char *option_name)
 	char buf[1024], *p, *p2;
 	FILE *fin = NULL;
 
+// 以下用来判断key是否是合法的
 	for (i = 0, ptr = options; (*ptr)[0]; ptr++, i++) {
 		if (!strcmp(option_name, (*ptr)[0]))
 			break;
 	}
+
 	if (!(*ptr)[0]) {
 		free(user_config_path);
 		free(user_default_config_path);
@@ -155,7 +157,7 @@ const char *lxc_global_config_value(const char *option_name)
 		errno = EINVAL;
 		return NULL;
 	}
-
+// 缓存中是否有，如果有的话，直接返回
 	if (values[i]) {
 		free(user_config_path);
 		free(user_default_config_path);
@@ -208,11 +210,12 @@ const char *lxc_global_config_value(const char *option_name)
 				goto out;
 			}
 
-			values[i] = copy_global_config_value(p);
+			values[i] = copy_global_config_value(p);//设置缓存
 			goto out;
 		}
 	}
 	/* could not find value, use default */
+// 如果没有配置文件，则返回默认的
 	if (strcmp(option_name, "lxc.lxcpath") == 0) {
 		remove_trailing_slashes(user_lxc_path);
 		values[i] = user_lxc_path;

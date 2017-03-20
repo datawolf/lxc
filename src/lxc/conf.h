@@ -332,7 +332,7 @@ struct lxc_conf {
 	unsigned int kmsg;  // if 1, create /dev/kmsg symlink
 	char *rcfile;	// Copy of the top level rcfile we read
 
-	// Logfile and logleve can be set in a container config file.
+	// Logfile and loglevel can be set in a container config file.
 	// Those function as defaults.  The defaults can be overriden
 	// by command line.  However we don't want the command line
 	// specified values to be saved on c->save_config().  So we

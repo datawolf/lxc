@@ -191,7 +191,7 @@ extern int lxc_arguments_parse(struct lxc_arguments *args,
 			  strerror(errno));
 		return ret;
 	}
-
+printf("lxc_arguments_parse: shortopts = %s\n", shortopts);
 	while (1)  {
 		int c, index = 0;
 
@@ -230,6 +230,7 @@ extern int lxc_arguments_parse(struct lxc_arguments *args,
 	args->argc = argc - optind;
 
 	/* If no lxcpaths were given, use default */
+printf("lxcpath_cnt = %d\n", args->lxcpath_cnt);
 	if (!args->lxcpath_cnt) {
 		ret = lxc_arguments_lxcpath_add(args, lxc_global_config_value("lxc.lxcpath"));
 		if (ret < 0)
@@ -237,7 +238,6 @@ extern int lxc_arguments_parse(struct lxc_arguments *args,
 	}
 
 	/* Check the command options */
-
 	if (!args->name && strcmp(args->progname, "lxc-autostart") != 0) {
 		lxc_error(args, "missing container name, use --name option");
 		return -1;

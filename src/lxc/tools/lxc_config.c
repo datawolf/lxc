@@ -64,10 +64,12 @@ int main(int argc, char *argv[])
 
 	if (argc < 2)
 		usage(argv[0]);
+	// TODO: 可以增加对--list的处理
 	if (strcmp(argv[1], "-l") == 0)
 		list_config_items();
 	for (i = &items[0]; i->name; i++) {
 		if (strcmp(argv[1], i->name) == 0) {
+			// 这些值是从哪里得到的？
 			value = lxc_get_global_config_item(i->name);
 			if (value)
 				printf("%s\n", value);
