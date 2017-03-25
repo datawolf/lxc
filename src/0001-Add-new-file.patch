@@ -1,0 +1,21 @@
+From d923395fffe3d6debcc01e09b455a7abad91e276 Mon Sep 17 00:00:00 2001
+From: Qiang Huang <h.huangqiang@huawei.com>
+Date: Thu, 23 Mar 2017 21:12:18 +0800
+Subject: [PATCH 1/2] Add new file
+
+---
+ README.md | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README.md
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..30404ce
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1 @@
++TODO
+\ No newline at end of file
+-- 
+2.7.4
+
