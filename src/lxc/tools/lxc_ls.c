@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 	/*
 	 * The lxc parser requires that my_args.name is set. So let's satisfy
 	 * that condition by setting a dummy name which is never used.
-	 */
+	 */	// 为什么会必须设置name 
 	my_args.name  = "";
 	if (lxc_arguments_parse(&my_args, argc, argv))
 		exit(EXIT_FAILURE);
@@ -354,12 +354,14 @@ static int ls_get(struct ls **m, size_t *size, const struct lxc_arguments *args,
 		ret = 0;
 		goto out;
 	}
-
+printf("LSLS: path = %s\n", path);
 	/* Do not do more work than is necessary right from the start. */
+	// ?? TODO：这里面的判断有问题
 	if (args->ls_active || (args->ls_active && args->ls_frozen))
 		num = list_active_containers(path, &containers, NULL);
 	else
 		num = list_all_containers(path, &containers, NULL);
+// 这里只获得容器的名称
 	if (num == -1) {
 		num = 0;
 		goto out;
@@ -372,12 +374,14 @@ static int ls_get(struct ls **m, size_t *size, const struct lxc_arguments *args,
 	size_t i;
 	for (i = 0; i < (size_t)num; i++) {
 		char *name = containers[i];
-
+		// 先用正则表达式进行过滤
 		/* Filter container names by regex the user gave us. */
 		if (args->ls_filter || args->argc == 1) {
 			regex_t preg;
+// 默认情况下，--filter为正在表达式的值，没有指定的话，argv[0]就是正则表达式的值
 			tmp = args->ls_filter ? args->ls_filter : args->argv[0];
 			check = regcomp(&preg, tmp, REG_NOSUB | REG_EXTENDED);
+// 可以考虑将这块正则表达式的代码移到for循环之外
 			if (check == REG_ESPACE) /* we're out of memory */
 				goto out;
 			else if (check != 0)
@@ -400,6 +404,7 @@ static int ls_get(struct ls **m, size_t *size, const struct lxc_arguments *args,
 
 		/* This does not allocate memory so no worries about freeing it
 		 * when we goto next or out. */
+// 获取容器的状态，再根据状态进行过滤
 		const char *state_tmp = c->state(c);
 		if (!state_tmp)
 			state_tmp = "UNKNOWN";
@@ -446,6 +451,7 @@ static int ls_get(struct ls **m, size_t *size, const struct lxc_arguments *args,
 			goto put_and_next;
 
 		/* Do not record stuff the user did not explictly request. */
+// 判断是否需要输出详细的信息
 		if (args->ls_fancy) {
 			/* Maybe we should even consider the name sensitive and
 			 * hide it when you're not allowed to control the

@@ -553,14 +553,14 @@ printf("lxc_long_init: priority = %s\n", priority);
 printf("lxc_long_init: prefix = %s\n", prefix);
 printf("lxc_long_init: quiet = %d\n", quiet);
 printf("lxc_long_init: lxcpath = %s\n", lxcpath);
-	int lxc_priority = LXC_LOG_PRIORITY_ERROR;
+	int lxc_priority = LXC_LOG_PRIORITY_ERROR;	// 默认是error级别的
 	int ret;
 
-	if (lxc_log_fd != -1) {
+	if (lxc_log_fd != -1) {	// 判断是否已经初始化
 		WARN("lxc_log_init called with log already initialized");
 		return 0;
 	}
-
+	// 根据需要，设置优先级，一般是用户参数里指定的字符串  debug、info等等
 	if (priority)
 		lxc_priority = lxc_log_priority_to_int(priority);
 
